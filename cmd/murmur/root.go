@@ -22,7 +22,6 @@ func main() {
 
 	app := &cli.App{
 		Usage: "Murmur configuration management commands",
-		//		DefaultCommand: "generate",
 		Commands: []*cli.Command{
 			cmd.DefaultCommand,
 			cmd.ReposCommand,
@@ -47,6 +46,7 @@ func main() {
 			cli.ShowAppHelp(c)
 			return nil
 		},
+		EnableBashCompletion: true,
 	}
 
 	if err := app.Run(os.Args); err != nil {

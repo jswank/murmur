@@ -34,16 +34,10 @@ func getFiles(ctx *cli.Context, dir, suffix string) ([]string, error) {
 	var files []string
 	var err error
 
-	if dir != "" {
-		log.Debug("searching for files", "dir", dir, "suffix", suffix)
-		files, err = findFiles(dir, suffix)
-		if err != nil {
-			return files, err
-		}
-		log.Debug("found files", "files", files)
-	} else {
-		if ctx.Args().First() == "" || ctx.Args().First() == "-" {
-			// read the list of target files from stdin
+	// if there is an argument, use it to get the list of files
+	if ctx.Args().First() != "" {
+		// if it is a dash, read the list from stdin
+		if ctx.Args().First() == "-" {
 			log.Debug("reading list of files from stdin")
 			files, err = readListFromStdin()
 			if err != nil {
@@ -53,6 +47,13 @@ func getFiles(ctx *cli.Context, dir, suffix string) ([]string, error) {
 			log.Debug("reading list of files from the command line")
 			files = ctx.Args().Slice()
 		}
+	} else if dir != "" {
+		log.Debug("searching for files", "dir", dir, "suffix", suffix)
+		files, err = findFiles(dir, suffix)
+		if err != nil {
+			return files, err
+		}
+		log.Debug("found files", "files", files)
 	}
 
 	if ctx.String("filter") != "" {

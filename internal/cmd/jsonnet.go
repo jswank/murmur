@@ -12,12 +12,12 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
-const jsonnetDesc = `Work with jsonnet files.
+const jsonnetDesc = `Work with Jsonnet files.
 
 A list of .jsonnet files can be supplied on the commandline
 `
 
-const jsonnetRenderDesc = `Render jsonnet files.
+const jsonnetRenderDesc = `Render Jsonnet files.
 
 The jsonnet application is invoked to render files.  The JSONNET_PATH variable
 should be set appropriately.  Commandline arguments can be passed to jsonnet
@@ -25,9 +25,12 @@ using the 'jsonnet_args' flag.
 
 `
 
-const jsonnetCreateDesc = `Create a new jsonnet file.
+const jsonnetCreateDesc = `Create a new Jsonnet file.
 
-App specific files located in DATADIR/tmpl are copied to the team/app/env directory specified.
+App specific files located in $DATADIR/tmpl/<app>.jsonnet.tmpl are copied to the team/app/env directory specified.
+
+Variables that can be used in templates include TEAM, ENV, and APP.
+
 `
 
 var JsonnetCommand = &cli.Command{
@@ -68,11 +71,17 @@ var JsonnetCommand = &cli.Command{
 			Before: BeforeFunc,
 		},
 		{
-			Name:        "render",
-			Usage:       "render jsonnet files",
-			Action:      renderJsonnet,
-			Flags:       DefaultFlags,
-			Before:      BeforeFunc,
+			Name:   "render",
+			Usage:  "render jsonnet files",
+			Action: renderJsonnet,
+			Before: BeforeFunc,
+			Flags: append(DefaultFlags,
+				&cli.StringFlag{
+					Name:  "jsonnet_args",
+					Usage: "Arguments to pass to the jsonnet application.",
+					Value: "-m .",
+				},
+			),
 			Description: jsonnetRenderDesc,
 		},
 	},
@@ -147,23 +156,25 @@ func renderJsonnet(ctx *cli.Context) error {
 		return err
 	}
 
+	jsonnetArgs := strings.Fields(ctx.String("jsonnet_args"))
+
 	for _, file := range files {
-		// execute 'jsonnet' in that directory with: jsonnet -m . name
-		cmd := exec.Command("jsonnet", "-m", ".", filepath.Base(file))
+		log.Info("jsonnet", "file", file)
+		cmd := exec.Command("jsonnet", append(jsonnetArgs, filepath.Base(file))...)
 		cmd.Dir = filepath.Dir(file)
 
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 
-		var stdout bytes.Buffer
-		cmd.Stdout = &stdout
+		cmd.Stdout = os.Stdout
+
+		log.Debug("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
 
 		err = cmd.Run()
 		if err != nil {
-			log.Error("jsonnet", "file", file, "msg", err, "stderr", stderr.String())
+			log.Error("jsonnet", "cmd", cmd.String(), "file", file, "msg", err, "stderr", stderr.String())
 			continue
 		}
-		log.Info("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir, "stdout", stdout.String())
 	}
 
 	return nil
