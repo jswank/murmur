@@ -1,0 +1,127 @@
+version: '3'
+
+vars:
+  GOOS:
+    sh: go env GOOS
+  GOARCH:
+    sh: go env GOARCH
+
+env:
+  DESTDIR: /usr/local/bin
+
+tasks:
+
+  default:
+    desc: display usage info
+    summary: |
+      This Taskfile can be used to build and install Go programs. A specific project structure is assumed:
+        - cmd/<binary> - code for a specific command / application
+        - bin/         - where binaries will be written
+
+      Binaries can be installed using the 'install' task to DESTDIR.
+
+      The 'matrix-build' task creates binaries for linux, macos.
+
+      The 'update-deps' task updates dependencies for the application.
+
+    cmds:
+      - go-task --list
+      - task: build
+
+  build-*:
+    desc: build a specific native binary
+    cmds:
+      - task: x-build-{{.BINARY}}
+      - cp bin/{{.BINARY}}_{{.GOOS}}_{{.GOARCH}} bin/{{.BINARY}}
+    vars:
+      BINARY: '{{index .MATCH 0}}'
+    sources:
+      - '**/*.go'
+    generates:
+      - bin/{{.BINARY}}
+
+  build:
+    desc: build all native binaries
+    cmds:
+      - for: { var: BINARIES }
+        task: build-{{.ITEM}}
+        vars:
+          BINARY: '{{.ITEM}}'
+    vars: 
+      BINARIES:
+        sh: ls cmd/
+
+  clean:
+    desc: clean up
+    cmd: rm -rf bin/*
+
+  install-*:
+    desc: install a binary
+    cmd: |
+      sudo install -m 0755 bin/{{.BINARY}} {{.DESTDIR}}/{{.BINARY}}
+    vars:
+      BINARY: '{{index .MATCH 0}}'
+
+  install:
+    desc: install all binaries
+    deps:
+      - build
+    cmds:
+      - for: { var: BINARIES }
+        task: install-{{.ITEM}}
+    vars: 
+      BINARIES:
+        sh: ls bin/
+
+  matrix-build:
+    desc: build all binaries for multiple os & architectures
+    cmds:
+      - for: { var: BINARIES }
+        task: matrix-build-{{.ITEM}}
+        vars:
+          BINARY: '{{.ITEM}}'
+    vars: 
+      BINARIES:
+        sh: ls cmd/
+
+  matrix-build-*:
+    desc: build a specific binary for multiple os & architectures
+    cmds:
+      - for:
+          matrix:
+            GOOS: [linux, darwin]
+            GOARCH: [amd64, arm64]
+        task: x-build-{{.BINARY}}
+        vars:
+          GOOS: '{{.ITEM.GOOS}}'
+          GOARCH: '{{.ITEM.GOARCH}}'
+    vars:
+      BINARY: '{{index .MATCH 0}}'
+
+  x-build-*:
+    desc: build a binary for the OS / Arch specified by $GOOS and $GOARCH
+    cmd: |
+      GOOS={{.GOOS}} GOARCH={{.GOARCH}} go build -v -o bin/{{.BINARY}}_{{.GOOS}}_{{.GOARCH}} ./cmd/{{.BINARY}}
+    vars:
+      BINARY: '{{index .MATCH 0}}'
+    sources:
+      - '**/*.go'
+    generates:
+      - bin/{{.BINARY}}_{{.GOOS}}_{{.GOARCH}}
+    deps:
+      - setup
+
+  update-deps:
+    desc: update go dependencies
+    cmds:
+      - go get -u ./...
+      - go mod tidy
+
+  setup:
+    desc: setup directories
+    internal: true 
+    cmds:
+      - mkdir -p bin
+    status:
+      - test -d bin
+
