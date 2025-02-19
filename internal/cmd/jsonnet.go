@@ -71,11 +71,17 @@ var JsonnetCommand = &cli.Command{
 			Before: BeforeFunc,
 		},
 		{
-			Name:        "render",
-			Usage:       "render jsonnet files",
-			Action:      renderJsonnet,
-			Flags:       DefaultFlags,
-			Before:      BeforeFunc,
+			Name:   "render",
+			Usage:  "render jsonnet files",
+			Action: renderJsonnet,
+			Before: BeforeFunc,
+			Flags: append(DefaultFlags,
+				&cli.StringFlag{
+					Name:  "jsonnet_args",
+					Usage: "Arguments to pass to the jsonnet application.",
+					Value: "-m .",
+				},
+			),
 			Description: jsonnetRenderDesc,
 		},
 	},
@@ -150,23 +156,22 @@ func renderJsonnet(ctx *cli.Context) error {
 		return err
 	}
 
+	jsonnetArgs := strings.Fields(ctx.String("jsonnet_args"))
+
 	for _, file := range files {
-		// execute 'jsonnet' in that directory with: jsonnet -m . name
-		cmd := exec.Command("jsonnet", "-m", ".", filepath.Base(file))
+		cmd := exec.Command("jsonnet", append(jsonnetArgs, file)...)
 		cmd.Dir = filepath.Dir(file)
 
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 
-		var stdout bytes.Buffer
-		cmd.Stdout = &stdout
+		cmd.Stdout = os.Stdout
 
 		err = cmd.Run()
 		if err != nil {
 			log.Error("jsonnet", "file", file, "msg", err, "stderr", stderr.String())
 			continue
 		}
-		log.Info("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir, "stdout", stdout.String())
 	}
 
 	return nil
