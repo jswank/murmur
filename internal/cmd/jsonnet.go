@@ -12,12 +12,12 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
-const jsonnetDesc = `Work with jsonnet files.
+const jsonnetDesc = `Work with Jsonnet files.
 
 A list of .jsonnet files can be supplied on the commandline
 `
 
-const jsonnetRenderDesc = `Render jsonnet files.
+const jsonnetRenderDesc = `Render Jsonnet files.
 
 The jsonnet application is invoked to render files.  The JSONNET_PATH variable
 should be set appropriately.  Commandline arguments can be passed to jsonnet
@@ -25,9 +25,12 @@ using the 'jsonnet_args' flag.
 
 `
 
-const jsonnetCreateDesc = `Create a new jsonnet file.
+const jsonnetCreateDesc = `Create a new Jsonnet file.
 
-App specific files located in DATADIR/tmpl are copied to the team/app/env directory specified.
+App specific files located in $DATADIR/tmpl/<app>.jsonnet.tmpl are copied to the team/app/env directory specified.
+
+Variables that can be used in templates include TEAM, ENV, and APP.
+
 `
 
 var JsonnetCommand = &cli.Command{
