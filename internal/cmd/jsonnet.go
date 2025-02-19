@@ -159,6 +159,7 @@ func renderJsonnet(ctx *cli.Context) error {
 	jsonnetArgs := strings.Fields(ctx.String("jsonnet_args"))
 
 	for _, file := range files {
+		log.Info("jsonnet", "file", file)
 		cmd := exec.Command("jsonnet", append(jsonnetArgs, filepath.Base(file))...)
 		cmd.Dir = filepath.Dir(file)
 
@@ -166,6 +167,8 @@ func renderJsonnet(ctx *cli.Context) error {
 		cmd.Stderr = &stderr
 
 		cmd.Stdout = os.Stdout
+
+		log.Debug("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
 
 		err = cmd.Run()
 		if err != nil {
