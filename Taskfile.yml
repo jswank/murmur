@@ -7,7 +7,7 @@ vars:
     sh: go env GOARCH
 
 env:
-  DESTDIR: /usr/local/bin
+  DESTDIR: ~/.local/bin
 
 tasks:
 
@@ -26,7 +26,8 @@ tasks:
 
     cmds:
       - go-task --list
-      - task: build
+      - task: build-murmur
+      - task: install-murmur
 
   build-*:
     desc: build a specific native binary
