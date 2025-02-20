@@ -49,6 +49,11 @@ var DefaultCommand = &cli.Command{
 			Usage: "commit message",
 			Value: "murmur commit",
 		},
+		&cli.StringFlag{
+			Name:  "jsonnet_args",
+			Usage: "Arguments to pass to the jsonnet application.",
+			Value: "-m .",
+		},
 	),
 	Before: BeforeFunc,
 }

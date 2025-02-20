@@ -37,4 +37,8 @@ var DefaultFlags = []cli.Flag{
 		Name:  "filter",
 		Usage: "Limit processing to team/app/env. Overrides team, app, env flags",
 	},
+	&cli.BoolFlag{
+		Name:  "errexit",
+		Usage: "Exit on errors",
+	},
 }

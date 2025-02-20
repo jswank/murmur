@@ -59,12 +59,6 @@ func getFiles(ctx *cli.Context, dir, suffix string) ([]string, error) {
 	if ctx.String("filter") != "" {
 		filter := filepath.Join(dir, ctx.String("filter"))
 		log.Debug("filtering files", "filter", filter)
-		/*
-			if dir != "" {
-				ctx.Set("filter", filepath.Join(dir, ctx.String("filter")))
-			}
-			files, err = filterFiles(files, ctx.String("filter"))
-		*/
 		files, err = filterFiles(files, filter)
 		if err != nil {
 			return files, err
@@ -72,7 +66,8 @@ func getFiles(ctx *cli.Context, dir, suffix string) ([]string, error) {
 	}
 
 	if len(files) == 0 {
-		return files, fmt.Errorf("no files provided")
+		log.Warn("no matching files", "dir", dir, "suffix", suffix, "filter", ctx.String("filter"))
+		return files, fmt.Errorf("no files matched the filter")
 	}
 
 	log.Debug("getFiles response", "files", files)
@@ -158,12 +153,6 @@ func BeforeFunc(ctx *cli.Context) error {
 	log, err = createLogger(ctx.String("loglevel"))
 	if err != nil {
 		return fmt.Errorf("unable to create a logger, %w", err)
-	}
-
-	// if team/app/env flags were not set, return
-
-	if !(ctx.IsSet("team") && ctx.IsSet("app") && ctx.IsSet("env")) {
-		return nil
 	}
 
 	if ctx.String("team") != "*" || ctx.String("app") != "*" || ctx.String("env") != "*" {
