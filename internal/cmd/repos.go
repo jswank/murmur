@@ -297,7 +297,7 @@ func cloneTargetRepo(repodir string, target murmur.Target) error {
 func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 	for _, target := range targets {
 		src_dir := filepath.Dir(target.Filename)
-		dest_dir := filepath.Join(repo_dir, target.Name, target.Path)
+		dest_dir := filepath.Join(repo_dir, target.CloneDir(), target.Path)
 		for _, t := range target.Types {
 			// return a list of files in the same directory of matching types
 			// files are named *-<app>-<type>.json
