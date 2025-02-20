@@ -92,7 +92,7 @@ var ReposCommand = &cli.Command{
 func listRepos(ctx *cli.Context) error {
 
 	files, err := getFiles(ctx, ctx.String("datadir"), "targets.json")
-	if err != nil {
+	if err != nil && ctx.Bool("errexit") {
 		return err
 	}
 
@@ -118,7 +118,7 @@ func listRepos(ctx *cli.Context) error {
 func cloneRepos(ctx *cli.Context) error {
 
 	files, err := getFiles(ctx, ctx.String("datadir"), "targets.json")
-	if err != nil {
+	if err != nil && ctx.Bool("errexit") {
 		return err
 	}
 
@@ -159,7 +159,9 @@ func cloneRepos(ctx *cli.Context) error {
 		err := cloneTargetRepo(ctx.String("repodir"), target)
 		if err != nil {
 			log.Error("unable to clone repository", "repo", target.Name, "branch", target.Branch, "error", err)
-			continue
+			if ctx.Bool("errexit") {
+				return fmt.Errorf("unable to clone repository %s", target.Name)
+			}
 		}
 	}
 
@@ -315,8 +317,8 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 				log.Debug("copying file", "file", file, "dest", filepath.Join(dest_dir, t, dest_filename))
 				err = copyFile(file, filepath.Join(dest_dir, t, dest_filename))
 				if err != nil {
-					log.Warn("unable to copy file", "file", file, "dest", filepath.Join(dest_dir, t, dest_filename), "error", err)
-					// return if soft fail is not enabled?
+					log.Error("unable to copy file", "file", file, "dest", filepath.Join(dest_dir, t, dest_filename), "error", err)
+					return err
 				}
 			}
 		}

@@ -90,7 +90,7 @@ var JsonnetCommand = &cli.Command{
 func listJsonnet(ctx *cli.Context) error {
 
 	files, err := getFiles(ctx, ctx.String("datadir"), ".jsonnet")
-	if err != nil {
+	if err != nil && ctx.Bool("errexit") {
 		return err
 	}
 
@@ -152,7 +152,7 @@ func createJsonnet(ctx *cli.Context) error {
 func renderJsonnet(ctx *cli.Context) error {
 
 	files, err := getFiles(ctx, ctx.String("datadir"), ".jsonnet")
-	if err != nil {
+	if err != nil && ctx.Bool("errexit") {
 		return err
 	}
 
@@ -172,8 +172,11 @@ func renderJsonnet(ctx *cli.Context) error {
 
 		err = cmd.Run()
 		if err != nil {
-			log.Error("jsonnet", "cmd", cmd.String(), "file", file, "msg", err, "stderr", stderr.String())
-			continue
+			if ctx.Bool("errexit") {
+				return err
+			} else {
+				log.Warn("jsonnet", "cmd", cmd.String(), "file", file, "msg", err, "stderr", stderr.String())
+			}
 		}
 	}
 
