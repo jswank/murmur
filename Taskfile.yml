@@ -126,3 +126,11 @@ tasks:
     status:
       - test -d bin
 
+  release:
+    desc: create a release
+    silent: true
+    cmd: |
+      echo "Run commands like the following: "
+      printf "  %s\n" 'git tag -a v0.1.1 -m "Release v0.1.1"'
+      printf "  %s\n" 'git push origin v0.1.1'
+      printf "  %s\n" 'goreleaser release'
