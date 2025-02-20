@@ -227,40 +227,45 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 
 	commitScript := ctx.String("commit_script")
 	commitMsg := ctx.String("commit_msg")
-	repodir := ctx.String("repodir")
+	repoDir := ctx.String("repodir")
 
 	var err error
 
+	cloneDir := filepath.Join(repoDir, target.CloneDir())
+
 	// check if the repository has already been cloned in repodir / target.Name
-	if _, err = os.Stat(filepath.Join(repodir, target.CloneDir())); err != nil {
+	if _, err = os.Stat(cloneDir); err != nil {
 		return fmt.Errorf("repository not cloned, %w", err)
 	}
 
-	// if a commit script is provided, run it rather than our default commit process
-	if commitScript != "" {
-		commitCmd := exec.Command(commitScript)
-		commitCmd.Dir = filepath.Join(repodir, target.Name)
-		log.Info("running commit script", "repo", target.Repo, "branch", target.Branch, "dir", filepath.Join(repodir, target.Name))
-		err = commitCmd.Run()
-		if err != nil {
-			return fmt.Errorf("unable to run commit script, %w", err)
-		}
-		return nil
+	// run `git add .` in the repository
+	addCmd := exec.Command("git", "add", ".")
+	addCmd.Dir = cloneDir
+	log.Info("adding files to repo", "cmd", addCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+	err = addCmd.Run()
+	if err != nil {
+		return fmt.Errorf("unable to add files to repo, %w", err)
 	}
 
-	// commit the repo
+	// commit files to the repository
 	commitCmd := exec.Command("git", "commit", "-am", commitMsg)
-	commitCmd.Dir = filepath.Join(repodir, target.Name)
-	log.Info("committing repository", "repo", target.Repo, "branch", target.Branch, "dir", filepath.Join(repodir, target.Name))
+
+	// if a commit script is provided, run it rather than our default commit process
+	if commitScript != "" {
+		commitCmd = exec.Command(commitScript)
+	}
+
+	commitCmd.Dir = cloneDir
+	log.Info("commiting changes to repo", "cmd", commitCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
 	err = commitCmd.Run()
 	if err != nil {
-		return fmt.Errorf("unable to commit repository, %w", err)
+		return fmt.Errorf("unable to commit changes to repo, %w", err)
 	}
 
 	// push repo to the remote origin
 	pushCmd := exec.Command("git", "push")
-	pushCmd.Dir = filepath.Join(repodir, target.Name)
-	log.Info("pushing repository", "repo", target.Repo, "branch", target.Branch, "dir", filepath.Join(repodir, target.Name))
+	pushCmd.Dir = cloneDir
+	log.Info("pushing repository", "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
 	err = pushCmd.Run()
 	if err != nil {
 		return fmt.Errorf("unable to push repository, %w", err)
@@ -298,6 +303,14 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 	for _, target := range targets {
 		src_dir := filepath.Dir(target.Filename)
 		dest_dir := filepath.Join(repo_dir, target.CloneDir(), target.Path)
+
+		// The toplevel directory (data directory) should already exist.  Return an error if it does not.
+		if _, err := os.Stat(dest_dir); err != nil {
+			return fmt.Errorf("destination directory %s error, %w", dest_dir, err)
+		} else {
+			log.Info("destination directory exists", "dir", dest_dir)
+		}
+
 		for _, t := range target.Types {
 			// return a list of files in the same directory of matching types
 			// files are named *-<app>-<type>.json
@@ -305,7 +318,15 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 			if err != nil {
 				return fmt.Errorf("unable to read files, %w", err)
 			}
-			log.Info("writing files to repository", "src", src_dir, "dest", dest_dir, "type", t, "files", files)
+
+			type_dest_dir := filepath.Join(dest_dir, t)
+			err = os.MkdirAll(type_dest_dir, 0755)
+			if err != nil {
+				return fmt.Errorf("unable to create directory, %w", err)
+			}
+
+			log.Info("writing files to repository", "src", src_dir, "dest", type_dest_dir, "type", t)
+
 			for _, file := range files {
 				// dest filename is the same as the source filename, minus the <app>. For instance,
 				// for the app "pyrenees", filename == "ets-cloudops-infrastructure-pyrenees-datasources.json" and
