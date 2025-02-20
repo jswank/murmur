@@ -160,12 +160,6 @@ func BeforeFunc(ctx *cli.Context) error {
 		return fmt.Errorf("unable to create a logger, %w", err)
 	}
 
-	// if team/app/env flags were not set, return
-
-	if !(ctx.IsSet("team") && ctx.IsSet("app") && ctx.IsSet("env")) {
-		return nil
-	}
-
 	if ctx.String("team") != "*" || ctx.String("app") != "*" || ctx.String("env") != "*" {
 		if ctx.String("filter") != "" {
 			log.Warn("filter is specified, ignoring team/app/env flags", "filter", ctx.String("filter"))
