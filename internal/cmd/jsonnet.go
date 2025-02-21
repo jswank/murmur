@@ -168,7 +168,7 @@ func renderJsonnet(ctx *cli.Context) error {
 
 		cmd.Stdout = os.Stdout
 
-		log.Debug("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
+		log.Info("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
 
 		err = cmd.Run()
 		if err != nil {
