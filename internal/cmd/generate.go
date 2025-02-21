@@ -6,7 +6,7 @@ import (
 	cli "github.com/urfave/cli/v2"
 )
 
-const DefaultDesc = `Render and write configuration files.
+const GenerateDesc = `Render and write configuration files.
 
 Combines the subcommands:
 
@@ -16,16 +16,15 @@ Combines the subcommands:
 	- repos commit (if --commit is specified)
 `
 
-var DefaultCommand = &cli.Command{
+var GenerateCommand = &cli.Command{
 	Name:            "generate",
 	Usage:           "render and write config files",
 	UsageText:       "murmur [options] [target_files...]",
 	HideHelpCommand: true,
 	Args:            true,
 	ArgsUsage:       "files...",
-	Action:          DefaultFunc,
-	Description:     DefaultDesc,
-	// combine DefaultFlags with a Bool flag for --commit
+	Action:          GenerateFunc,
+	Description:     GenerateDesc,
 	Flags: append(DefaultFlags,
 		&cli.StringFlag{
 			Name:  "repodir",
@@ -55,10 +54,15 @@ var DefaultCommand = &cli.Command{
 			Value: "-m .",
 		},
 	),
-	Before: BeforeFunc,
+	Before: func(c *cli.Context) error {
+		// override to exit on error
+		c.Set("errexit", "true")
+		return BeforeFunc(c)
+	},
 }
 
-func DefaultFunc(c *cli.Context) error {
+func GenerateFunc(c *cli.Context) error {
+
 	err := renderJsonnet(c)
 	if err != nil {
 		return err
