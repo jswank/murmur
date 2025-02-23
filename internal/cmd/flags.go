@@ -15,7 +15,7 @@ var DefaultFlags = []cli.Flag{
 	},
 	&cli.StringFlag{
 		Name:  "output",
-		Usage: "Set the (log) output. to 'json' or 'text'",
+		Usage: "Set the (log) output to 'json' or 'text'",
 		Value: "text",
 	},
 	&cli.StringFlag{
