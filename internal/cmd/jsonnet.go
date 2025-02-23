@@ -77,9 +77,15 @@ var JsonnetCommand = &cli.Command{
 			Before: BeforeFunc,
 			Flags: append(DefaultFlags,
 				&cli.StringFlag{
+					Name:  "destdir",
+					Usage: "Destination directory for rendered files. If unset, it defaults the same directory as the jsonnet file. The directory is relative to the current working directory.",
+					Value: "",
+				},
+				// this value is depdend on the value of the destdir flag
+				&cli.StringFlag{
 					Name:  "jsonnet_args",
-					Usage: "Arguments to pass to the jsonnet application.",
-					Value: "-m .",
+					Usage: "Arguments to pass to the jsonnet application. Defaults to '-m <destdir>'",
+					Value: "-m",
 				},
 			),
 			Description: jsonnetRenderDesc,
@@ -156,6 +162,15 @@ func renderJsonnet(ctx *cli.Context) error {
 		return err
 	}
 
+	renderDir := ctx.String("destdir")
+	if renderDir == "" {
+		renderDir = "."
+	}
+	log.Debug("rendering jsonnet files", "files", files, "destdir", renderDir)
+
+	if ctx.String("jsonnet_args") == "-m" {
+		ctx.Set("jsonnet_args", "-m "+renderDir)
+	}
 	jsonnetArgs := strings.Fields(ctx.String("jsonnet_args"))
 
 	for _, file := range files {
@@ -168,7 +183,7 @@ func renderJsonnet(ctx *cli.Context) error {
 
 		cmd.Stdout = os.Stdout
 
-		log.Debug("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
+		log.Info("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
 
 		err = cmd.Run()
 		if err != nil {

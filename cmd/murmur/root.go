@@ -23,7 +23,7 @@ func main() {
 	app := &cli.App{
 		Usage: "Murmur configuration management commands",
 		Commands: []*cli.Command{
-			cmd.DefaultCommand,
+			cmd.GenerateCommand,
 			cmd.ReposCommand,
 			cmd.JsonnetCommand,
 		},
