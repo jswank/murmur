@@ -14,6 +14,11 @@ var DefaultFlags = []cli.Flag{
 		Value: "error",
 	},
 	&cli.StringFlag{
+		Name:  "output",
+		Usage: "Set the (log) output. to 'json' or 'text'",
+		Value: "text",
+	},
+	&cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Recursively search this for files to process. Defaults to $DATADIR",
 		Value: os.Getenv("DATADIR"),

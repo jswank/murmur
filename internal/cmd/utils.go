@@ -150,7 +150,7 @@ func BeforeFunc(ctx *cli.Context) error {
 	var err error
 
 	// configure package logger
-	log, err = createLogger(ctx.String("loglevel"))
+	log, err = createLogger(ctx.String("loglevel"), ctx.String("output"))
 	if err != nil {
 		return fmt.Errorf("unable to create a logger, %w", err)
 	}
