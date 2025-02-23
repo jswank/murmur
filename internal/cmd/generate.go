@@ -15,7 +15,7 @@ Combines the subcommands:
 	- repos write
 	- repos commit (if --commit is specified)
 
-This command will always render the jsonnet files to a single directory before
+This command will always render jsonnet files to a single directory before
 cloning, writing, and (optionally) committing the repos. The --destdir flag can
 be used to specify this directory: if unset, a temporary directory is created,
 used, and deleted.
