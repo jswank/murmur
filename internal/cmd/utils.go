@@ -164,5 +164,16 @@ func BeforeFunc(ctx *cli.Context) error {
 	}
 	log.Info("filter", "filter", ctx.String("filter"))
 
+	// if destdir is a relative path, make it absolute based on the current
+	// working directory this is required because the directory is passed
+	// directly to `jsonnet -m` by default.
+	if ctx.String("destdir") != "" && !filepath.IsAbs(ctx.String("destdir")) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("unable to get the current working directory, %w", err)
+		}
+		ctx.Set("destdir", filepath.Join(cwd, ctx.String("destdir")))
+	}
+
 	return nil
 }

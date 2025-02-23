@@ -136,26 +136,31 @@ func cloneRepos(ctx *cli.Context) error {
 	cloned_repos := make(map[string]bool)
 
 	for _, target := range targets {
+
 		// clone the repo if it hasn't been cloned yet
 		if _, ok := cloned_repos[target.Name+target.Branch]; ok {
 			continue
 		}
 		cloned_repos[target.Name+target.Branch] = true
 
-		// if the repo would be cloned to an already existing directory, log an error unless '--overwrite' is set
+		// if the repo would be cloned to an already existing directory, log a warning unless '--overwrite' is set
+		// if '--overwrite' is set, remove the existing directory
 		if _, err = os.Stat(filepath.Join(ctx.String("repodir"), target.CloneDir())); err == nil {
+			log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
 			if !ctx.Bool("overwrite") {
-				log.Error("repository already cloned", "repo", target.Name, "branch", target.Branch)
+				log.Warn("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
 				continue
 			} else {
 				// remove the existing clone directory
-				log.Debug("removing existing repo", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
+				log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
 				err = os.RemoveAll(filepath.Join(ctx.String("repodir"), target.CloneDir()))
 				if err != nil {
 					return fmt.Errorf("unable to remove existing repo, %w", err)
 				}
 			}
 		}
+
+		// clone the repository
 		err := cloneTargetRepo(ctx.String("repodir"), target)
 		if err != nil {
 			log.Error("unable to clone repository", "repo", target.Name, "branch", target.Branch, "error", err)
@@ -259,7 +264,7 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 	log.Info("commiting changes to repo", "cmd", commitCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
 	err = commitCmd.Run()
 	if err != nil {
-		return fmt.Errorf("unable to commit changes to repo, %w", err)
+		return fmt.Errorf("no changes to commit, or unable to commit, %w", err)
 	}
 
 	// push repo to the remote origin
