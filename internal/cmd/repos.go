@@ -230,11 +230,20 @@ func commitRepos(ctx *cli.Context) error {
 // commit a single repository from a target
 func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 
-	commitScript := ctx.String("commit_script")
+	var err error
+
 	commitMsg := ctx.String("commit_msg")
 	repoDir := ctx.String("repodir")
 
-	var err error
+	// set commitScript to the absolute path of the script, relative to the
+	// current working directory, if it is set
+	commitScript := ""
+	if ctx.String("commit_script") != "" {
+		commitScript, err = filepath.Abs(ctx.String("commit_script"))
+		if err != nil {
+			return fmt.Errorf("unable to get absolute path of commit script, %w", err)
+		}
+	}
 
 	cloneDir := filepath.Join(repoDir, target.CloneDir())
 
@@ -252,19 +261,35 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 		return fmt.Errorf("unable to add files to repo, %w", err)
 	}
 
+	// if git diff --cached --quiet returns 0, there are no changes to commit- exit
+	diffCmd := exec.Command("git", "diff", "--cached", "--quiet")
+	diffCmd.Dir = cloneDir
+	err = diffCmd.Run()
+	if err == nil {
+		log.Info("no changes to commit to repo", "cmd", diffCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+		return nil
+	}
+
 	// commit files to the repository
 	commitCmd := exec.Command("git", "commit", "-am", commitMsg)
 
-	// if a commit script is provided, run it rather than our default commit process
+	// if a commit script is provided, run it rather than our default commit & push process
 	if commitScript != "" {
+		log.Debug("running commit script", "script", commitScript)
 		commitCmd = exec.Command(commitScript)
 	}
-
 	commitCmd.Dir = cloneDir
+	commitCmd.Stdout = os.Stdout
+	commitCmd.Stderr = os.Stderr
+
 	log.Info("commiting changes to repo", "cmd", commitCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
 	err = commitCmd.Run()
 	if err != nil {
-		return fmt.Errorf("no changes to commit, or unable to commit, %w", err)
+		return fmt.Errorf("Unable to commit to repo. %w", err)
+	}
+
+	if commitScript != "" {
+		return nil
 	}
 
 	// push repo to the remote origin
