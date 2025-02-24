@@ -155,6 +155,11 @@ func BeforeFunc(ctx *cli.Context) error {
 		return fmt.Errorf("unable to create a logger, %w", err)
 	}
 
+	// set datadir to "."
+	if ctx.String("datadir") == "" {
+		ctx.Set("datadir", ".")
+	}
+
 	if ctx.String("team") != "*" || ctx.String("app") != "*" || ctx.String("env") != "*" {
 		if ctx.String("filter") != "" {
 			log.Warn("filter is specified, ignoring team/app/env flags", "filter", ctx.String("filter"))
@@ -165,8 +170,8 @@ func BeforeFunc(ctx *cli.Context) error {
 	log.Info("filter", "filter", ctx.String("filter"))
 
 	// if destdir is a relative path, make it absolute based on the current
-	// working directory this is required because the directory is passed
-	// directly to `jsonnet -m` by default.
+	// working directory. An absolute path is required because the directory is
+	// passed directly to `jsonnet -m` by default.
 	if ctx.String("destdir") != "" && !filepath.IsAbs(ctx.String("destdir")) {
 		cwd, err := os.Getwd()
 		if err != nil {
