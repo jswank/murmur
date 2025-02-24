@@ -78,8 +78,8 @@ var JsonnetCommand = &cli.Command{
 			Flags: append(DefaultFlags,
 				&cli.StringFlag{
 					Name:  "destdir",
-					Usage: "Rendered files destination, relative to current directory. Defaults to the jsonnet file directory.",
-					Value: "",
+					Usage: "Rendered files destination, relative to current directory. Defaults to the jsonnet file directory, can be set using $DESTDIR",
+					Value: os.Getenv("DESTDIR"),
 				},
 				// this value is depdend on the value of the destdir flag
 				&cli.StringFlag{
