@@ -38,8 +38,8 @@ var GenerateCommand = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "destdir",
-			Usage: "Destination directory for rendered files. If unset, it defaults the same directory as the jsonnet file.",
-			Value: "",
+			Usage: "Destination directory for rendered files. Defaults the same directory as the jsonnet file, can be set using $DESTDIR.",
+			Value: os.Getenv("DESTDIR"),
 		},
 		&cli.BoolFlag{
 			Name:  "overwrite",
