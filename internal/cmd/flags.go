@@ -20,7 +20,7 @@ var DefaultFlags = []cli.Flag{
 	},
 	&cli.StringFlag{
 		Name:  "datadir",
-		Usage: "Recursively search this for files to process. Defaults to $DATADIR",
+		Usage: "Search path for files. Defaults to '.', can be set using $DATADIR",
 		Value: os.Getenv("DATADIR"),
 	},
 	&cli.StringFlag{
@@ -40,7 +40,7 @@ var DefaultFlags = []cli.Flag{
 	},
 	&cli.StringFlag{
 		Name:  "filter",
-		Usage: "Limit processing to team/app/env. Overrides team, app, env flags",
+		Usage: "Limit processing based on a 'team/app/env' string. Overrides team, app, env flag.",
 	},
 	&cli.BoolFlag{
 		Name:  "errexit",

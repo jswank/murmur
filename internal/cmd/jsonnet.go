@@ -53,7 +53,7 @@ var JsonnetCommand = &cli.Command{
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "datadir",
-					Usage: "Recursively search this for files to process. Defaults to $DATADIR",
+					Usage: "Search path for files. Defaults to '.', can be set using $DATADIR",
 					Value: os.Getenv("DATADIR"),
 				},
 				&cli.StringFlag{
@@ -78,7 +78,7 @@ var JsonnetCommand = &cli.Command{
 			Flags: append(DefaultFlags,
 				&cli.StringFlag{
 					Name:  "destdir",
-					Usage: "Destination directory for rendered files. If unset, it defaults the same directory as the jsonnet file. The directory is relative to the current working directory.",
+					Usage: "Rendered files destination, relative to current directory. Defaults to the jsonnet file directory.",
 					Value: "",
 				},
 				// this value is depdend on the value of the destdir flag
