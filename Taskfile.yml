@@ -131,6 +131,6 @@ tasks:
     silent: true
     cmd: |
       echo "After changes are in the main branch, run commands like the following: "
-      printf "  %s\n" 'git tag -a v0.1.1 -m "Release v0.1.1"'
-      printf "  %s\n" 'git push origin v0.1.1'
-      printf "  %s\n" 'goreleaser release'
+      printf "  %s\n" 'git tag v0.1.4'
+      printf "  %s\n" 'git push --tags'
+      printf "  %s\n" 'goreleaser release --clean'
