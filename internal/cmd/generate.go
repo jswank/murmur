@@ -33,7 +33,7 @@ var GenerateCommand = &cli.Command{
 	Flags: append(DefaultFlags,
 		&cli.StringFlag{
 			Name:  "repodir",
-			Usage: "location of git repos. Defaults to $REPODIR",
+			Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
 			Value: os.Getenv("REPODIR"),
 		},
 		&cli.StringFlag{
@@ -43,19 +43,19 @@ var GenerateCommand = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "overwrite",
-			Usage: "overwrite existing repos",
+			Usage: "Overwrite existing repos with fresh clones",
 		},
 		&cli.BoolFlag{
 			Name:  "commit",
-			Usage: "commit changes to git repos",
+			Usage: "Commit / push changes to git repos",
 		},
 		&cli.StringFlag{
 			Name:  "commit_script",
-			Usage: "script to run to commit the repo",
+			Usage: "Script to run to commit / push changes to the repo",
 		},
 		&cli.StringFlag{
 			Name:  "commit_msg",
-			Usage: "commit message",
+			Usage: "Commit message",
 			Value: "murmur commit",
 		},
 		&cli.StringFlag{
