@@ -42,12 +42,12 @@ var ReposCommand = &cli.Command{
 			Flags: append(DefaultFlags,
 				&cli.StringFlag{
 					Name:  "repodir",
-					Usage: "location of git repos. Defaults to $REPODIR",
+					Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
 					Value: os.Getenv("REPODIR"),
 				},
 				&cli.BoolFlag{
 					Name:  "overwrite",
-					Usage: "overwrite existing repos",
+					Usage: "Overwrite existing repos with fresh clones",
 				},
 			),
 		},
@@ -59,7 +59,7 @@ var ReposCommand = &cli.Command{
 			Flags: append(DefaultFlags,
 				&cli.StringFlag{
 					Name:  "repodir",
-					Usage: "location of git repos. Defaults to $REPODIR",
+					Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
 					Value: os.Getenv("REPODIR"),
 				}),
 		},
@@ -137,31 +137,19 @@ func cloneRepos(ctx *cli.Context) error {
 
 	for _, target := range targets {
 
-		// clone the repo if it hasn't been cloned yet
+		// clone the repo only if it hasn't been cloned in this loop
 		if _, ok := cloned_repos[target.Name+target.Branch]; ok {
 			continue
 		}
 		cloned_repos[target.Name+target.Branch] = true
 
-		// if the repo would be cloned to an already existing directory, log a warning unless '--overwrite' is set
-		// if '--overwrite' is set, remove the existing directory
-		if _, err = os.Stat(filepath.Join(ctx.String("repodir"), target.CloneDir())); err == nil {
-			log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
-			if !ctx.Bool("overwrite") {
-				log.Warn("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
-				continue
-			} else {
-				// remove the existing clone directory
-				log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
-				err = os.RemoveAll(filepath.Join(ctx.String("repodir"), target.CloneDir()))
-				if err != nil {
-					return fmt.Errorf("unable to remove existing repo, %w", err)
-				}
-			}
+		err = setupCloneDir(ctx, target)
+		if err != nil {
+			log.Error("unable to setup clone directory", "error", err)
 		}
 
 		// clone the repository
-		err := cloneTargetRepo(ctx.String("repodir"), target)
+		err = cloneTargetRepo(ctx.String("repodir"), target)
 		if err != nil {
 			log.Error("unable to clone repository", "repo", target.Name, "branch", target.Branch, "error", err)
 			if ctx.Bool("errexit") {
@@ -308,12 +296,6 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 // clone a single repository from a target
 func cloneTargetRepo(repodir string, target murmur.Target) error {
 
-	// check if the repository has already been cloned in repodir / target.Name
-	if _, err := os.Stat(filepath.Join(repodir, target.Name)); err == nil {
-		log.Info("repository already cloned", "repo", target.Name)
-		return nil
-	}
-
 	githubURL := fmt.Sprintf("https://%s@github.com/%s.git", os.Getenv("GITHUB_TOKEN"), target.Repo)
 
 	cloneCmd := exec.Command("git", "clone", "--depth", "1", "--branch", target.Branch, githubURL, target.CloneDir())
@@ -375,4 +357,29 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 		}
 	}
 	return nil
+}
+
+// setupCloneDir sets up the clone directory for a target
+// if the repo would be cloned to an already existing directory, log a warning unless '--overwrite' is set
+// if '--overwrite' is set, remove the existing directory
+func setupCloneDir(ctx *cli.Context, target murmur.Target) error {
+
+	_, err := os.Stat(filepath.Join(ctx.String("repodir"), target.CloneDir()))
+
+	if err == nil {
+		log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
+		if !ctx.Bool("overwrite") {
+			err = fmt.Errorf("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
+		} else {
+			// remove the existing clone directory
+			log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
+			err = os.RemoveAll(filepath.Join(ctx.String("repodir"), target.CloneDir()))
+			if err != nil {
+				err = fmt.Errorf("unable to remove existing repo, %w", err)
+			}
+		}
+	}
+
+	return err
+
 }
