@@ -50,21 +50,21 @@ var GenerateCommand = &cli.Command{
 			Usage: "Commit / push changes to git repos",
 		},
 		&cli.StringFlag{
-			Name:  "commit_script",
+			Name:  "commit-script",
 			Usage: "Script to run to commit / push changes to the repo",
 		},
 		&cli.StringFlag{
-			Name:  "commit_msg",
+			Name:  "commit-msg",
 			Usage: "Commit message",
 			Value: "murmur commit",
 		},
 		&cli.StringFlag{
-			Name:  "jsonnet_args",
+			Name:  "jsonnet-args",
 			Usage: "Arguments to pass to the jsonnet application.",
 			Value: "-m",
 		},
 		&cli.StringFlag{
-			Name:   "delete_destdir",
+			Name:   "delete-destdir",
 			Usage:  "Delete the dest dir",
 			Hidden: true,
 		},
@@ -75,12 +75,12 @@ var GenerateCommand = &cli.Command{
 		c.Set("errexit", "true")
 
 		// this will be set to true if the destdir is created later:
-		c.Set("delete_destdir", "false")
+		c.Set("delete-destdir", "false")
 
 		return BeforeFunc(c)
 	},
 	After: func(c *cli.Context) error {
-		if c.String("delete_destdir") == "true" {
+		if c.String("delete-destdir") == "true" {
 			log.Debug("Deleting destdir", "dir", c.String("destdir"))
 			err := os.RemoveAll(c.String("destdir"))
 			if err != nil {
@@ -102,7 +102,7 @@ func GenerateFunc(c *cli.Context) error {
 		log.Debug("Created temp destdir", "dir", destdir)
 
 		c.Set("destdir", destdir)
-		c.Set("delete_destdir", "true")
+		c.Set("delete-destdir", "true")
 	}
 
 	err := renderJsonnet(c)

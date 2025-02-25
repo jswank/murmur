@@ -21,7 +21,7 @@ const jsonnetRenderDesc = `Render Jsonnet files.
 
 The jsonnet application is invoked to render files.  The JSONNET_PATH variable
 should be set appropriately.  Commandline arguments can be passed to jsonnet
-using the 'jsonnet_args' flag.
+using the 'jsonnet-args' flag.
 
 `
 
@@ -83,7 +83,7 @@ var JsonnetCommand = &cli.Command{
 				},
 				// this value is depdend on the value of the destdir flag
 				&cli.StringFlag{
-					Name:  "jsonnet_args",
+					Name:  "jsonnet-args",
 					Usage: "Arguments to pass to the jsonnet application. Defaults to '-m <destdir>'",
 					Value: "-m",
 				},
@@ -168,10 +168,10 @@ func renderJsonnet(ctx *cli.Context) error {
 	}
 	log.Debug("rendering jsonnet files", "files", files, "destdir", renderDir)
 
-	if ctx.String("jsonnet_args") == "-m" {
-		ctx.Set("jsonnet_args", "-m "+renderDir)
+	if ctx.String("jsonnet-args") == "-m" {
+		ctx.Set("jsonnet-args", "-m "+renderDir)
 	}
-	jsonnetArgs := strings.Fields(ctx.String("jsonnet_args"))
+	jsonnetArgs := strings.Fields(ctx.String("jsonnet-args"))
 
 	for _, file := range files {
 		log.Info("jsonnet", "file", file)

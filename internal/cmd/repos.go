@@ -75,11 +75,11 @@ var ReposCommand = &cli.Command{
 					Value: os.Getenv("REPODIR"),
 				},
 				&cli.StringFlag{
-					Name:  "commit_script",
+					Name:  "commit-script",
 					Usage: "script to run to commit the repo",
 				},
 				&cli.StringFlag{
-					Name:  "commit_msg",
+					Name:  "commit-msg",
 					Usage: "commit message",
 					Value: "murmur commit",
 				},
@@ -220,14 +220,14 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 
 	var err error
 
-	commitMsg := ctx.String("commit_msg")
+	commitMsg := ctx.String("commit-msg")
 	repoDir := ctx.String("repodir")
 
 	// set commitScript to the absolute path of the script, relative to the
 	// current working directory, if it is set
 	commitScript := ""
-	if ctx.String("commit_script") != "" {
-		commitScript, err = filepath.Abs(ctx.String("commit_script"))
+	if ctx.String("commit-script") != "" {
+		commitScript, err = filepath.Abs(ctx.String("commit-script"))
 		if err != nil {
 			return fmt.Errorf("unable to get absolute path of commit script, %w", err)
 		}
