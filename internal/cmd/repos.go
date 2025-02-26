@@ -128,14 +128,20 @@ func cloneRepos(ctx *cli.Context) error {
 	}
 
 	// create the top-level repodir if it doesn't exist
-	err = os.MkdirAll(ctx.String("repodir"), 0755)
-	if err != nil {
-		return err
+	if ctx.String("repodir") != "" {
+		err = os.MkdirAll(ctx.String("repodir"), 0755)
+		if err != nil {
+			return err
+		}
 	}
 
 	cloned_repos := make(map[string]bool)
 
 	for _, target := range targets {
+
+		if target.Repo == "." {
+			continue
+		}
 
 		// clone the repo only if it hasn't been cloned in this loop
 		if _, ok := cloned_repos[target.Name+target.Branch]; ok {

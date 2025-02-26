@@ -44,5 +44,9 @@ func NewTargetsFromFile(filename string) ([]Target, error) {
 }
 
 func (t Target) CloneDir() string {
-	return fmt.Sprintf("%s:%s", t.Name, t.Branch)
+	if t.Repo == "." {
+		return "."
+	} else {
+		return fmt.Sprintf("%s:%s", t.Name, t.Branch)
+	}
 }
