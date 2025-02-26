@@ -127,7 +127,7 @@ func cloneRepos(ctx *cli.Context) error {
 		return err
 	}
 
-	// create the repodir if it doesn't exist
+	// create the top-level repodir if it doesn't exist
 	err = os.MkdirAll(ctx.String("repodir"), 0755)
 	if err != nil {
 		return err
