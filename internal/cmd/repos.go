@@ -207,6 +207,10 @@ func commitRepos(ctx *cli.Context) error {
 
 	// commit the repo if it hasn't been committed yet
 	for _, target := range targets {
+		if target.Repo == "." {
+			log.Info("skipping commit for target with Repo == '.'", "repo", target.Repo, "branch", target.Branch)
+			continue
+		}
 		if _, ok := committed_repos[target.Name+target.Branch]; ok {
 			continue
 		}
@@ -249,7 +253,7 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 	// run `git add .` in the repository
 	addCmd := exec.Command("git", "add", ".")
 	addCmd.Dir = cloneDir
-	log.Info("adding files to repo", "cmd", addCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+	log.Info("adding files to repo", "cmd", addCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", addCmd.Dir)
 	err = addCmd.Run()
 	if err != nil {
 		return fmt.Errorf("unable to add files to repo, %w", err)
@@ -260,7 +264,7 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 	diffCmd.Dir = cloneDir
 	err = diffCmd.Run()
 	if err == nil {
-		log.Info("no changes to commit to repo", "cmd", diffCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+		log.Info("no changes to commit to repo", "cmd", diffCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", diffCmd.Dir)
 		return nil
 	}
 
@@ -276,7 +280,7 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 	commitCmd.Stdout = os.Stdout
 	commitCmd.Stderr = os.Stderr
 
-	log.Info("commiting changes to repo", "cmd", commitCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+	log.Info("commiting changes to repo", "cmd", commitCmd.String(), "repo", target.Repo, "branch", target.Branch, "dir", commitCmd.Dir)
 	err = commitCmd.Run()
 	if err != nil {
 		return fmt.Errorf("Unable to commit to repo. %w", err)
@@ -289,7 +293,7 @@ func commitTargetRepo(ctx *cli.Context, target murmur.Target) error {
 	// push repo to the remote origin
 	pushCmd := exec.Command("git", "push")
 	pushCmd.Dir = cloneDir
-	log.Info("pushing repository", "repo", target.Repo, "branch", target.Branch, "dir", cloneDir)
+	log.Info("pushing repository", "repo", target.Repo, "branch", target.Branch, "dir", pushCmd.Dir)
 	err = pushCmd.Run()
 	if err != nil {
 		return fmt.Errorf("unable to push repository, %w", err)
@@ -325,23 +329,38 @@ func cloneTargetRepo(repodir string, target murmur.Target) error {
 // writeFilesToRepos writes files to the target repositories
 func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 	for _, target := range targets {
+		log.Debug("processing target", "repo", target.Repo, "branch", target.Branch, "CloneDir", target.CloneDir())
+
 		src_dir := filepath.Dir(target.Filename)
-		dest_dir := filepath.Join(repo_dir, target.CloneDir(), target.Path)
+
+		target_repo_dir := repo_dir
+		if target.Repo == "." {
+			log.Debug("overriding repo_dir with current working directory for Repo == '.'", "repo_dir", repo_dir)
+			target_repo_dir = "."
+		}
+
+		dest_dir := filepath.Join(target_repo_dir, target.CloneDir(), target.Path)
+		log.Debug("dest_dir for this target is set", "dest_dir", dest_dir)
 
 		// The toplevel directory (data directory) should already exist.  Return an error if it does not.
 		if _, err := os.Stat(dest_dir); err != nil {
-			return fmt.Errorf("destination directory %s error, %w", dest_dir, err)
+			log.Error("destination directory does not exist", "dest_dir", dest_dir, "error", err)
+			return err
 		} else {
-			log.Info("destination directory exists", "dir", dest_dir)
+			log.Info("destination directory exists", "dest_dir", dest_dir)
 		}
 
 		for _, t := range target.Types {
 			// return a list of files in the same directory of matching types
 			// files are named *-<app>-<type>.json
+			//
+			// BUG: if there are multiple targets and app-type-specific files in the same
+			// directory, all the matching files will be copied to the target directory
 			files, err := filepath.Glob(filepath.Join(src_dir, fmt.Sprintf("*-%s-%s.json", target.App, t)))
 			if err != nil {
 				return fmt.Errorf("unable to read files, %w", err)
 			}
+			log.Debug("matching files for target type found", "files", files)
 
 			type_dest_dir := filepath.Join(dest_dir, t)
 			err = os.MkdirAll(type_dest_dir, 0755)
@@ -377,18 +396,20 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 func setupCloneDir(ctx *cli.Context, target murmur.Target) error {
 
 	_, err := os.Stat(filepath.Join(ctx.String("repodir"), target.CloneDir()))
+	if err != nil && os.IsNotExist(err) {
+		// directory does not exist, return no error
+		return nil
+	}
 
-	if err == nil {
-		log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
-		if !ctx.Bool("overwrite") {
-			err = fmt.Errorf("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
-		} else {
-			// remove the existing clone directory
-			log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
-			err = os.RemoveAll(filepath.Join(ctx.String("repodir"), target.CloneDir()))
-			if err != nil {
-				err = fmt.Errorf("unable to remove existing repo, %w", err)
-			}
+	log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
+	if !ctx.Bool("overwrite") {
+		err = fmt.Errorf("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
+	} else {
+		// remove the existing clone directory
+		log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
+		err = os.RemoveAll(filepath.Join(ctx.String("repodir"), target.CloneDir()))
+		if err != nil {
+			err = fmt.Errorf("unable to remove existing repo, %w", err)
 		}
 	}
 

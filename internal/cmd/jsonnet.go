@@ -154,7 +154,7 @@ func createJsonnet(ctx *cli.Context) error {
 	return nil
 }
 
-// renderJsonnet renders files from the specified jsonnet files
+// renderJsonnet renders files from the specified jsonnet files to destdir/
 func renderJsonnet(ctx *cli.Context) error {
 
 	files, err := getFiles(ctx, ctx.String("datadir"), ".jsonnet")
