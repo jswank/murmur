@@ -331,8 +331,6 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 	for _, target := range targets {
 		log.Debug("processing target", "repo", target.Repo, "branch", target.Branch, "CloneDir", target.CloneDir())
 
-		src_dir := filepath.Dir(target.Filename)
-
 		target_repo_dir := repo_dir
 		if target.Repo == "." {
 			log.Debug("overriding repo_dir with current working directory for Repo == '.'", "repo_dir", repo_dir)
@@ -356,7 +354,9 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 			//
 			// BUG: if there are multiple targets and app-type-specific files in the same
 			// directory, all the matching files will be copied to the target directory
-			files, err := filepath.Glob(filepath.Join(src_dir, fmt.Sprintf("*-%s-%s.json", target.App, t)))
+			log.Debug("processing target type", "type", t)
+			log.Debug("searching for file glob", "glob", filepath.Join(target.Dir, fmt.Sprintf("%s-%s.json", target.Prefix, t)))
+			files, err := filepath.Glob(filepath.Join(target.Dir, fmt.Sprintf("%s-%s.json", target.Prefix, t)))
 			if err != nil {
 				return fmt.Errorf("unable to read files, %w", err)
 			}
@@ -368,7 +368,7 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 				return fmt.Errorf("unable to create directory, %w", err)
 			}
 
-			log.Info("writing files to repository", "src", src_dir, "dest", type_dest_dir, "type", t)
+			log.Info("writing files to repository", "src", target.Dir, "dest", type_dest_dir, "type", t)
 
 			for _, file := range files {
 				// dest filename is the same as the source filename, minus the <app>. For instance,

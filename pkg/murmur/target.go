@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // Target is a struct that represents a target.json file
@@ -17,7 +18,9 @@ import (
 // };
 
 type Target struct {
+	Dir      string   `json:"-"`
 	Filename string   `json:"-"`
+	Prefix   string   `json:"-"`
 	App      string   `json:"app"`
 	Branch   string   `json:"branch"`
 	Name     string   `json:"name"`
@@ -37,8 +40,15 @@ func NewTargetsFromFile(filename string) ([]Target, error) {
 	if err != nil {
 		return targets, err
 	}
+
+	dir := filepath.Dir(filename)
+	fname := filepath.Base(filename)
+	prefix := fname[:len(fname)-len("-targets.json")]
+
 	for i := range targets {
-		targets[i].Filename = filename
+		targets[i].Dir = dir
+		targets[i].Filename = fname
+		targets[i].Prefix = prefix
 	}
 	return targets, nil
 }
