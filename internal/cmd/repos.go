@@ -14,7 +14,11 @@ import (
 
 const ReposDesc = `Work with repos.
 
-A list of target.json files can be supplied on the commandline
+A list of target.json files can be supplied on the commandline.
+
+If a target defines repo=".", then the destination will be relative to the
+currrent working directory- not a remote git repository.
+
 `
 
 var ReposCommand = &cli.Command{
@@ -149,9 +153,9 @@ func cloneRepos(ctx *cli.Context) error {
 		}
 		cloned_repos[target.Name+target.Branch] = true
 
-		err = setupCloneDir(ctx, target)
+		err = processExistingCloneDir(ctx, target)
 		if err != nil {
-			log.Error("unable to setup clone directory", "error", err)
+			log.Error("unable to process clone directory", "error", err)
 		}
 
 		// clone the repository
@@ -390,20 +394,23 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 	return nil
 }
 
-// setupCloneDir sets up the clone directory for a target
-// if the repo would be cloned to an already existing directory, log a warning unless '--overwrite' is set
+// processExistingCloneDir deals with an existing clone directory for a target
 // if '--overwrite' is set, remove the existing directory
-func setupCloneDir(ctx *cli.Context, target murmur.Target) error {
+func processExistingCloneDir(ctx *cli.Context, target murmur.Target) error {
 
 	_, err := os.Stat(filepath.Join(ctx.String("repodir"), target.CloneDir()))
-	if err != nil && os.IsNotExist(err) {
-		// directory does not exist, return no error
-		return nil
+	if err != nil {
+		if os.IsNotExist(err) {
+			// directory does not exist, return no error
+			return nil
+		}
+		log.Error("unable to stat repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()), "error", err)
+		return err
 	}
 
 	log.Warn("repository directory already exists", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
 	if !ctx.Bool("overwrite") {
-		err = fmt.Errorf("repository will not be re-cloned: specify --overwrite to overwrite existing repos")
+		err = fmt.Errorf("repository will not be overwritten: specify --overwrite to overwrite existing repos")
 	} else {
 		// remove the existing clone directory
 		log.Debug("removing existing repository directory", "repo", target.Name, "branch", target.Branch, "dir", filepath.Join(ctx.String("repodir"), target.CloneDir()))
