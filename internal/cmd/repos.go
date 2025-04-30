@@ -313,7 +313,7 @@ func cloneTargetRepo(repodir string, target murmur.Target) error {
 	githubURL := fmt.Sprintf("https://github.com/%s.git", target.Repo)
 
 	if os.Getenv("GITHUB_TOKEN") != "" {
-		githubURL = fmt.Sprintf("https://%s@github.com/%s.git", os.Getenv("GITHUB_TOKEN"), target.Repo)
+		githubURL = fmt.Sprintf("https://oauth2:%s@github.com/%s.git", os.Getenv("GITHUB_TOKEN"), target.Repo)
 	} else {
 		log.Warn("$GITHUB_TOKEN is not set: pushes to remote repos will fail unless using an external commit-script")
 	}
