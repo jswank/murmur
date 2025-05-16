@@ -31,6 +31,7 @@ var GenerateCommand = &cli.Command{
 	Action:          GenerateFunc,
 	Description:     GenerateDesc,
 	Flags: append(DefaultFlags,
+		branchOverridesFlag,
 		&cli.StringFlag{
 			Name:  "repodir",
 			Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",

@@ -21,6 +21,20 @@ currrent working directory- not a remote git repository.
 
 `
 
+// Shared flags for multiple commands
+// branchOverridesFlag is a flag shared by commands that manipulate repositories
+var branchOverridesFlag = &cli.StringSliceFlag{
+	Name:  "override-branch",
+	Usage: "Override branch for specific repo (format: repo_name:branch)",
+}
+
+// repoDirFlag is a flag shared by commands that need repository location
+var repoDirFlag = &cli.StringFlag{
+	Name:  "repodir",
+	Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
+	Value: os.Getenv("REPODIR"),
+}
+
 var ReposCommand = &cli.Command{
 	Name:            "repos",
 	Usage:           "work with repos",
@@ -35,7 +49,7 @@ var ReposCommand = &cli.Command{
 			Name:   "list",
 			Usage:  "list repos",
 			Action: listRepos,
-			Flags:  DefaultFlags,
+			Flags:  append(DefaultFlags, branchOverridesFlag),
 			Before: BeforeFunc,
 		},
 		{
@@ -44,11 +58,8 @@ var ReposCommand = &cli.Command{
 			Action: cloneRepos,
 			Before: BeforeFunc,
 			Flags: append(DefaultFlags,
-				&cli.StringFlag{
-					Name:  "repodir",
-					Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
-					Value: os.Getenv("REPODIR"),
-				},
+				repoDirFlag,
+				branchOverridesFlag,
 				&cli.BoolFlag{
 					Name:  "overwrite",
 					Usage: "Overwrite existing repos with fresh clones",
@@ -61,23 +72,18 @@ var ReposCommand = &cli.Command{
 			Action: writeRepos,
 			Before: BeforeFunc,
 			Flags: append(DefaultFlags,
-				&cli.StringFlag{
-					Name:  "repodir",
-					Usage: "Location of git repos. Defaults to current working directory, can be set with $REPODIR",
-					Value: os.Getenv("REPODIR"),
-				}),
+				branchOverridesFlag,
+				repoDirFlag,
+			),
 		},
 		{
 			Name:   "commit",
 			Usage:  "commit repos",
 			Action: commitRepos,
 			Before: BeforeFunc,
-			Flags: append(DefaultFlags, []cli.Flag{
-				&cli.StringFlag{
-					Name:  "repodir",
-					Usage: "location of git repos. Defaults to $REPODIR",
-					Value: os.Getenv("REPODIR"),
-				},
+			Flags: append(DefaultFlags,
+				branchOverridesFlag,
+				repoDirFlag,
 				&cli.StringFlag{
 					Name:  "commit-script",
 					Usage: "script to run to commit the repo",
@@ -87,7 +93,7 @@ var ReposCommand = &cli.Command{
 					Usage: "commit message",
 					Value: "murmur commit",
 				},
-			}...),
+			),
 		},
 	},
 }
@@ -104,6 +110,9 @@ func listRepos(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply branch overrides to all targets at once
+	applyBranchOverrides(ctx, targets)
 
 	repos := make(map[string]bool)
 	for _, target := range targets {
@@ -131,6 +140,9 @@ func cloneRepos(ctx *cli.Context) error {
 		return err
 	}
 
+	// Apply branch overrides to all targets at once
+	applyBranchOverrides(ctx, targets)
+
 	// create the top-level repodir if it doesn't exist
 	if ctx.String("repodir") != "" {
 		err = os.MkdirAll(ctx.String("repodir"), 0755)
@@ -142,7 +154,6 @@ func cloneRepos(ctx *cli.Context) error {
 	cloned_repos := make(map[string]bool)
 
 	for _, target := range targets {
-
 		if target.Repo == "." {
 			continue
 		}
@@ -185,6 +196,9 @@ func writeRepos(ctx *cli.Context) error {
 		return err
 	}
 
+	// Apply branch overrides to all targets at once
+	applyBranchOverrides(ctx, targets)
+
 	err = writeFilesToRepos(ctx.String("repodir"), targets)
 	if err != nil {
 		return err
@@ -206,6 +220,9 @@ func commitRepos(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply branch overrides to all targets at once
+	applyBranchOverrides(ctx, targets)
 
 	committed_repos := make(map[string]bool)
 
@@ -318,6 +335,8 @@ func cloneTargetRepo(repodir string, target murmur.Target) error {
 		log.Warn("$GITHUB_TOKEN is not set: pushes to remote repos will fail unless using an external commit-script")
 	}
 
+	log.Debug("githubURL (redacted token)", "url", fmt.Sprintf("https://oauth2:${GITHUB_TOKEN}@github.com/%s.git", target.Repo))
+
 	cloneCmd := exec.Command("git", "clone", "--depth", "1", "--branch", target.Branch, githubURL, target.CloneDir())
 	cloneCmd.Dir = repodir
 
@@ -392,6 +411,39 @@ func writeFilesToRepos(repo_dir string, targets []murmur.Target) error {
 		}
 	}
 	return nil
+}
+
+// applyBranchOverrides processes branch override flags (in format repo_name:branch)
+// and applies them to all targets where the repo name matches
+func applyBranchOverrides(ctx *cli.Context, targets []murmur.Target) {
+	// Get branch overrides from the command line
+	branchOverrides := ctx.StringSlice("override-branch")
+	if len(branchOverrides) == 0 {
+		return
+	}
+
+	// Process each override
+	for _, override := range branchOverrides {
+		parts := strings.SplitN(override, ":", 2)
+		if len(parts) != 2 {
+			log.Warn("invalid branch override format", "override", override, "format", "repo_name:branch")
+			continue
+		}
+
+		repoName := parts[0]
+		branch := parts[1]
+
+		log.Debug("branch override", "repoName", repoName, "branch", branch)
+
+		// Apply override to all matching targets
+		for i := range targets {
+			log.Debug("checking target for branch override", "target", targets[i].Name, "branch", targets[i].Branch)
+			if targets[i].Name == repoName {
+				log.Info("overriding branch for repo", "repo", targets[i].Name, "original_branch", targets[i].Branch, "new_branch", branch)
+				targets[i].Branch = branch
+			}
+		}
+	}
 }
 
 // processExistingCloneDir deals with an existing clone directory for a target
