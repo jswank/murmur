@@ -51,6 +51,7 @@ murmur generate [options] [target_files...]
 - `--repodir`: Location of git repos [default: current directory or $REPODIR]
 - `--destdir`: Destination directory for rendered files [default: same as jsonnet file or $DESTDIR]
 - `--overwrite`: Overwrite existing repos with fresh clones
+- `--override-branch value [ --override-branch value ]`:  Override branch for specific repo (format: repo_name:branch)
 - `--commit`: Commit and push changes to git repos
 - `--commit-script`: Script to run for committing/pushing changes
 - `--commit-msg`: Commit message [default: "murmur commit"]
