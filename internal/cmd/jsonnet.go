@@ -181,13 +181,17 @@ func renderJsonnet(ctx *cli.Context) error {
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 
-		cmd.Stdout = os.Stdout
+		// ignore stdout
+		// cmd.Stdout = os.Stdout
+		cmd.Stdout = nil
 
 		log.Info("jsonnet", "cmd", cmd.String(), "dir", cmd.Dir)
 
 		err = cmd.Run()
 		if err != nil {
 			if ctx.Bool("errexit") {
+				log.Error("jsonnet", "cmd", cmd.String(), "file", file, "msg", err, "stderr", stderr.String())
+				err = fmt.Errorf("error processing file %s", file)
 				return err
 			} else {
 				log.Warn("jsonnet", "cmd", cmd.String(), "file", file, "msg", err, "stderr", stderr.String())
